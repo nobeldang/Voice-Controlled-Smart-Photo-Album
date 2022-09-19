@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Smart-Photo-Album-Application
+
+Resources:
+  S3BUCKET1:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+        BucketName: b1rekog-cloud-frontend
+        AccessControl: PublicRead
+        WebsiteConfiguration:
+          IndexDocument: index.html
+
+  S3BUCKET2:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+        BucketName: b2rekog-photos
+        AccessControl: Private
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: false
+          BlockPublicPolicy: false
+          IgnorePublicAcls: false
+          RestrictPublicBuckets: false
+
+  IAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "index-photos-role-cloud"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      MaxSessionDuration: 3600
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/AmazonRekognitionFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess"
+  IAMRole2:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "search-photos-role-cloud"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      MaxSessionDuration: 3600
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/AmazonRekognitionFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess"
+  LambdaFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "LF1"
+      FunctionName: "LF1_index_img_cf"
+      Handler: "lambda_function.lambda_handler"
+      Architectures:
+        - "x86_64"
+      Code:
+        S3Bucket: "phototwo"
+        S3Key: "LF1_index_img_cf.zip"
+      MemorySize: 128
+      Role:
+        'Fn::GetAtt':
+          - IAMRole
+          - Arn
+      Runtime: "python3.8"
+      Timeout: 20
+      TracingConfig:
+        Mode: "PassThrough"
+  LambdaFunction2:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "LF2"
+      FunctionName: "LF2_seach_photot_cf"
+      Handler: "lambda_function.lambda_handler"
+      Architectures:
+        - "x86_64"
+      Code:
+        S3Bucket: "phototwo"
+        S3Key: "LF2_search_photo_cf.zip"
+      MemorySize: 128
+      Role:
+        'Fn::GetAtt':
+          - IAMRole2
+          - Arn
+      Runtime: "python3.8"
+      Timeout: 20
+      TracingConfig:
+        Mode: "PassThrough"
+
+
+  APIGATEWAYRESTAPI:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: 'AI Photo Search New'
+      Description: 'AI Photo Search application, built during the Cloud and Big Data course at NYU.'
+      ApiKeySourceType: 'HEADER'
+      BinaryMediaTypes:
+        - '*/*'
+      EndpointConfiguration:
+        Types:
+          - 'REGIONAL'
+
+  OpenSearchInstance:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      DomainName: "photos2"
+      EngineVersion: "Elasticsearch_7.10"
+      ClusterConfig:
+        InstanceType: t2.small.search
+        InstanceCount: 1
+      EBSOptions:
+        EBSEnabled: true
+        VolumeType: gp2
+        VolumeSize: 10

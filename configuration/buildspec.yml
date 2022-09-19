@@ -1,0 +1,21 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+  build:
+    commands:
+      - echo "Zipping deployment package..."
+      - cd lf1
+      - zip -r9 ../deployment_package1.zip .
+      - cd ..
+      - cd lf2
+      - zip -r9 ../deployment_package2.zip .
+      - cd ..
+  post_build:
+    commands:
+      - echo "Updating lambda Function 1..."
+      - aws lambda update-function-code --function-name index-photos --zip-file fileb://deployment_package1.zip
+      - echo "Updating lambda Function 2..."
+      - aws lambda update-function-code --function-name search-photos --zip-file fileb://deployment_package2.zip
+      - echo "DONE!!"
