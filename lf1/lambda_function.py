@@ -12,7 +12,7 @@ REGION = 'REGION'
 
 
 s3 = boto3.client('s3')
-rekognition = boto3.client("rekognition", region_name = "RESION")
+rekognition = boto3.client("rekognition", region_name = "REGION")
 
 def lambda_handler(event, context):
     print("Integrating code to CodeBuild!")
